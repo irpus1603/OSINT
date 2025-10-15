@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSINT Security Summary Report - {{ range_label }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 1.5cm;
+            @top-center {
+                content: "OSINT Security Summary Report";
+                font-family: Arial, sans-serif;
+                font-size: 10pt;
+                color: #666;
+            }
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: Arial, sans-serif;
+                font-size: 10pt;
+                color: #666;
+            }
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #2c3e50;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            font-size: 11pt;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 24pt;
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 12pt;
+            margin: 10px 0;
+        }
+
+        .header .meta-info {
+            color: #95a5a6;
+            font-size: 10pt;
+            margin-top: 15px;
+        }
+
+        .threat-level {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14pt;
+        }
+
+        .threat-level.high {
+            background-color: #ffebee;
+            border: 2px solid #f44336;
+            color: #c62828;
+        }
+
+        .threat-level.medium {
+            background-color: #fff8e1;
+            border: 2px solid #ff9800;
+            color: #e65100;
+        }
+
+        .threat-level.low {
+            background-color: #e8f5e8;
+            border: 2px solid #4caf50;
+            color: #2e7d32;
+        }
+
+        .summary-stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #3498db;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 10pt;
+            color: #7f8c8d;
+        }
+
+        .section {
+            margin: 25px 0;
+            page-break-inside: avoid;
+        }
+
+        .section h2 {
+            color: #2c3e50;
+            font-size: 16pt;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            page-break-after: avoid;
+        }
+
+        .section h3 {
+            color: #34495e;
+            font-size: 14pt;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            page-break-after: avoid;
+        }
+
+        .analysis-content {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .analysis-content h2,
+        .analysis-content h3 {
+            color: #2c3e50;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .analysis-content h2 {
+            font-size: 14pt;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+        }
+
+        .analysis-content h3 {
+            font-size: 12pt;
+            color: #34495e;
+        }
+
+        .analysis-content p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+
+        .analysis-content ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .analysis-content li {
+            margin: 5px 0;
+        }
+
+        .analysis-content strong {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .analysis-content em {
+            color: #3498db;
+            font-style: italic;
+        }
+
+        .keywords-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 10pt;
+        }
+
+        .keywords-table th,
+        .keywords-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .keywords-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .keywords-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .sources-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .source-item {
+            background-color: #ecf0f1;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 10pt;
+        }
+
+        .source-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .source-count {
+            color: #7f8c8d;
+        }
+
+        .articles-section {
+            margin: 20px 0;
+        }
+
+        .article-item {
+            border-left: 4px solid #3498db;
+            padding: 10px 15px;
+            margin: 10px 0;
+            background-color: #f8f9fa;
+        }
+
+        .article-title {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 11pt;
+        }
+
+        .article-meta {
+            color: #7f8c8d;
+            font-size: 9pt;
+            margin: 5px 0;
+        }
+
+        .article-excerpt {
+            color: #34495e;
+            font-size: 10pt;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .error-box {
+            background-color: #ffebee;
+            border: 1px solid #f44336;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #c62828;
+        }
+
+        .footer-info {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 9pt;
+            color: #95a5a6;
+            text-align: center;
+        }
+
+        /* Page break controls */
+        .page-break {
+            page-break-before: always;
+        }
+
+        .no-break {
+            page-break-inside: avoid;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="header no-break">
+        <h1>🔒 OSINT Security Intelligence Report</h1>
+        <div class="subtitle">Comprehensive Security Analysis - {{ range_label }}</div>
+        <div class="meta-info">
+            Generated on {{ generated_date }}<br>
+            Analysis Duration: {{ analysis_duration }} seconds<br>
+            Sources: {{ total_articles }} articles, {{ total_posts }} social media posts
+        </div>
+    </div>
+
+    <!-- Threat Level -->
+    <div class="threat-level {% if threat_level == 'High' %}high{% elif threat_level == 'Medium' %}medium{% else %}low{% endif %} no-break">
+        {% if threat_level == 'High' %}🚨{% elif threat_level == 'Medium' %}⚠️{% else %}✅{% endif %}
+        Current Threat Level: {{ threat_level|upper }}
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="summary-stats no-break">
+        <div class="stat-item">
+            <span class="stat-number">{{ total_articles }}</span>
+            <span class="stat-label">Security Articles</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">{{ total_posts }}</span>
+            <span class="stat-label">Social Intelligence</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">{{ total_negative }}</span>
+            <span class="stat-label">Negative Reports</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">{{ total_neutral }}</span>
+            <span class="stat-label">Neutral Reports</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">{{ total_positive }}</span>
+            <span class="stat-label">Positive Reports</span>
+        </div>
+    </div>
+
+    <!-- AI Security Analysis -->
+    {% if security_summary %}
+    <div class="section">
+        <h2>🤖 AI Security Analysis</h2>
+        <div class="analysis-content">
+            {{ security_summary|safe }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Trend Analysis -->
+    {% if trend_analysis %}
+    <div class="section">
+        <h2>📈 Trend Analysis</h2>
+        <div class="analysis-content">
+            {{ trend_analysis|safe }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Incident Analysis -->
+    {% if incident_analysis %}
+    <div class="section page-break">
+        <h2>🚨 Incident Analysis</h2>
+        <div class="analysis-content">
+            {{ incident_analysis|safe }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Security Keywords -->
+    <div class="section">
+        <h2>🔍 Security Keywords Analysis</h2>
+        {% if trending_keywords %}
+        <table class="keywords-table">
+            <thead>
+                <tr>
+                    <th>Security Keyword</th>
+                    <th>Total Mentions</th>
+                    <th>Priority Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for keyword in trending_keywords %}
+                <tr>
+                    <td><strong>{{ keyword.keyword }}</strong></td>
+                    <td>{{ keyword.total_mentions }}</td>
+                    <td>
+                        {% if keyword.total_mentions > 50 %}
+                            <strong style="color: #e74c3c;">High</strong>
+                        {% elif keyword.total_mentions > 20 %}
+                            <strong style="color: #f39c12;">Medium</strong>
+                        {% else %}
+                            <span style="color: #27ae60;">Low</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No security keywords detected in the selected time period.</p>
+        {% endif %}
+    </div>
+
+    <!-- Top Sources -->
+    <div class="section">
+        <h2>📰 Intelligence Sources</h2>
+        <div class="sources-list">
+            {% for source, count in top_sources %}
+            <div class="source-item">
+                <div class="source-name">{{ source }}</div>
+                <div class="source-count">{{ count }} reports</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recent Security Articles -->
+    <div class="section page-break">
+        <h2>📄 Recent Security Reports</h2>
+        <div class="articles-section">
+            {% for article in recent_articles %}
+            <div class="article-item">
+                <div class="article-title">{{ article.title }}</div>
+                <div class="article-meta">
+                    Source: {{ article.source.name }} • {{ article.scraped_at|timesince }} ago
+                </div>
+                {% if article.excerpt %}
+                <div class="article-excerpt">{{ article.excerpt|truncatechars:200 }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Error Display -->
+    {% if analysis_error %}
+    <div class="section">
+        <h2>⚠️ Analysis Limitations</h2>
+        <div class="error-box">
+            <strong>Note:</strong> Some AI analysis features were unavailable during report generation.
+            <br><strong>Technical Details:</strong> {{ analysis_error }}
+            <br><em>Statistical analysis and keyword tracking remain fully operational.</em>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="footer-info">
+        <strong>OSINT Dashboard Security Intelligence System</strong><br>
+        This report contains analysis from {{ trending_keywords|length }} security keywords across {{ total_articles }} articles and {{ total_posts }} social media posts.<br>
+        AI Analysis powered by GoToCompany/gemma2-9b-cpt-sahabatai-v1-instruct<br>
+        <em>Report generated automatically - For official use only</em>
+    </div>
+</body>
+</html>

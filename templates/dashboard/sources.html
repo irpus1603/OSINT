@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Sources Analysis{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Source Performance</h5>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th>Type</th>
+                            <th>Total Items</th>
+                            <th>Positive Sentiment</th>
+                            <th>Negative Sentiment</th>
+                            <th>Neutral Sentiment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for source in source_data %}
+                        <tr>
+                            <td>{{ source.name }}</td>
+                            <td>{{ source.type|title }}</td>
+                            <td>{{ source.total_items }}</td>
+                            <td>{{ source.positive_sentiment }}</td>
+                            <td>{{ source.negative_sentiment }}</td>
+                            <td>{{ source.neutral_sentiment }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

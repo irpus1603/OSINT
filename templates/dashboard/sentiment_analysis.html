@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+
+{% block title %}Sentiment Analysis{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Positive Sentiment</h5>
+                <p class="card-text display-4">{{ total_positive }}</p>
+                <small class="text-white">Overall positive content</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Negative Sentiment</h5>
+                <p class="card-text display-4">{{ total_negative }}</p>
+                <small class="text-white">Overall negative content</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-secondary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Neutral Sentiment</h5>
+                <p class="card-text display-4">{{ total_neutral }}</p>
+                <small class="text-white">Overall neutral content</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Sentiment Score</h5>
+                <p class="card-text display-4">{{ sentiment_score }}</p>
+                <small class="text-white">Overall sentiment trend</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Sentiment Trend Over Time</h5>
+                <div class="chart-container" style="position: relative; height:400px; width:100%">
+                    <canvas id="sentimentTimelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Sentiment Distribution</h5>
+                <div class="chart-container" style="position: relative; height:400px; width:100%">
+                    <canvas id="sentimentDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Sentiment by Content Type</h5>
+                <div class="chart-container" style="position: relative; height:300px; width:100%">
+                    <canvas id="contentTypeSentimentChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Top Keywords by Sentiment</h5>
+                <div class="chart-container" style="position: relative; height:300px; width:100%">
+                    <canvas id="keywordSentimentChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Sentiment Insights</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="alert alert-info">
+                            <h6>Trend Analysis</h6>
+                            <p>The overall sentiment trend shows a <strong>{{ trend_direction }}</strong> in sentiment over the selected period.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="alert alert-warning">
+                            <h6>Key Observations</h6>
+                            <p>Most sentiment activity occurred on <strong>{{ peak_sentiment_day }}</strong> with {{ peak_sentiment_count }} sentiment records.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="alert alert-success">
+                            <h6>Recommendations</h6>
+                            <p>Focus monitoring efforts on <strong>{{ recommendation }}</strong> to stay ahead of potential security concerns.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Parse the sentiment timeline data
+    const sentimentTimeline = JSON.parse('{{ sentiment_timeline|escapejs }}');
+    const sentimentDistribution = {
+        positive: {{ total_positive }},
+        negative: {{ total_negative }},
+        neutral: {{ total_neutral }}
+    };
+    
+    // Extract dates and sentiment counts
+    const dates = sentimentTimeline.map(item => item.date);
+    const positiveData = sentimentTimeline.map(item => item.positive);
+    const negativeData = sentimentTimeline.map(item => item.negative);
+    const neutralData = sentimentTimeline.map(item => item.neutral);
+    
+    // Create the timeline chart
+    const timelineCtx = document.getElementById('sentimentTimelineChart').getContext('2d');
+    const sentimentTimelineChart = new Chart(timelineCtx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [
+                {
+                    label: 'Positive',
+                    data: positiveData,
+                    borderColor: 'rgba(40, 167, 69, 1)',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Negative',
+                    data: negativeData,
+                    borderColor: 'rgba(220, 53, 69, 1)',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Neutral',
+                    data: neutralData,
+                    borderColor: 'rgba(108, 117, 125, 1)',
+                    backgroundColor: 'rgba(108, 117, 125, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Sentiment Count'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+    
+    // Create the sentiment distribution chart
+    const distributionCtx = document.getElementById('sentimentDistributionChart').getContext('2d');
+    const sentimentDistributionChart = new Chart(distributionCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Positive', 'Negative', 'Neutral'],
+            datasets: [{
+                data: [sentimentDistribution.positive, sentimentDistribution.negative, sentimentDistribution.neutral],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.7)',
+                    'rgba(220, 53, 69, 0.7)',
+                    'rgba(108, 117, 125, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(40, 167, 69, 1)',
+                    'rgba(220, 53, 69, 1)',
+                    'rgba(108, 117, 125, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Content type sentiment chart (mock data)
+    const contentTypeCtx = document.getElementById('contentTypeSentimentChart').getContext('2d');
+    const contentTypeSentimentChart = new Chart(contentTypeCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Articles', 'Social Posts'],
+            datasets: [
+                {
+                    label: 'Positive',
+                    data: [{{ article_positive }}, {{ post_positive }}],
+                    backgroundColor: 'rgba(40, 167, 69, 0.7)'
+                },
+                {
+                    label: 'Negative',
+                    data: [{{ article_negative }}, {{ post_negative }}],
+                    backgroundColor: 'rgba(220, 53, 69, 0.7)'
+                },
+                {
+                    label: 'Neutral',
+                    data: [{{ article_neutral }}, {{ post_neutral }}],
+                    backgroundColor: 'rgba(108, 117, 125, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+    
+    // Keyword sentiment chart (mock data)
+    const keywordCtx = document.getElementById('keywordSentimentChart').getContext('2d');
+    const keywordSentimentChart = new Chart(keywordCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Security', 'Threat', 'Attack', 'Terrorism', 'Cyber'],
+            datasets: [
+                {
+                    label: 'Positive',
+                    data: [3, 1, 2, 0, 1],
+                    backgroundColor: 'rgba(40, 167, 69, 0.7)'
+                },
+                {
+                    label: 'Negative',
+                    data: [8, 12, 15, 18, 10],
+                    backgroundColor: 'rgba(220, 53, 69, 0.7)'
+                },
+                {
+                    label: 'Neutral',
+                    data: [5, 3, 4, 5, 2],
+                    backgroundColor: 'rgba(108, 117, 125, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    stacked: true
+                },
+                y: {
+                    stacked: true
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

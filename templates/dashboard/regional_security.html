@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Status Keamanan Regional - OSINT Jasa Pengamanan{% endblock %}
+{% block header_icon %}map-marked-alt{% endblock %}
+{% block title %}Status Keamanan Regional{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card primary position-relative">
+            <i class="fas fa-map stat-icon"></i>
+            <div class="stat-value" style="color: var(--primary-color);">{{ total_regions }}</div>
+            <div class="stat-label">Wilayah Dipantau</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card warning position-relative">
+            <i class="fas fa-calendar-alt stat-icon"></i>
+            <div class="stat-value" style="color: var(--warning-color); font-size: 1.5rem;">{{ date_range }}</div>
+            <div class="stat-label">Periode Data</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card success position-relative">
+            <i class="fas fa-sync-alt stat-icon"></i>
+            <div class="stat-value" style="color: var(--success-color); font-size: 1.2rem;">Real-time</div>
+            <div class="stat-label">Status Update</div>
+        </div>
+    </div>
+</div>
+
+<!-- Regional Security Cards -->
+<div class="row g-4">
+    {% for region in regional_data %}
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-map-pin me-2"></i>
+                    <strong>{{ region.region }}</strong>
+                </div>
+                <span class="badge bg-{{ region.status_color }} px-3 py-2">
+                    <i class="fas fa-shield-alt me-1"></i>{{ region.status }}
+                </span>
+            </div>
+            <div class="card-body">
+                <!-- Threat Count -->
+                <div class="mb-3 p-3 bg-light rounded">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">{{ region.threat_count }}</h5>
+                            <small class="text-muted">Total Ancaman Terdeteksi</small>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x text-{{ region.status_color }}"></i>
+                    </div>
+                </div>
+
+                <!-- Threat Types Breakdown -->
+                <div class="mb-3">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-chart-bar me-2"></i>Jenis Ancaman:
+                    </h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-center">
+                                <div class="fw-bold text-danger">{{ region.threat_types.pencurian }}</div>
+                                <small class="text-muted">Pencurian</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-center">
+                                <div class="fw-bold text-warning">{{ region.threat_types.demo }}</div>
+                                <small class="text-muted">Demo</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-center">
+                                <div class="fw-bold text-danger">{{ region.threat_types.kerusuhan }}</div>
+                                <small class="text-muted">Kerusuhan</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-center">
+                                <div class="fw-bold text-info">{{ region.threat_types.kecelakaan }}</div>
+                                <small class="text-muted">Kecelakaan</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Threat Type -->
+                <div class="alert alert-{{ region.status_color }} mb-3">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Ancaman Utama:</strong> {{ region.top_threat }}
+                </div>
+
+                <!-- Key Areas -->
+                <div class="mb-3">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-building me-2"></i>Area Kunci yang Dipantau:
+                    </h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for area in region.areas %}
+                        <span class="badge bg-secondary">{{ area }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Recent Incidents -->
+                {% if region.recent_incidents %}
+                <div class="mt-3">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-history me-2"></i>Insiden Terbaru:
+                    </h6>
+                    <ul class="list-group list-group-flush">
+                        {% for incident in region.recent_incidents %}
+                        <li class="list-group-item px-0">
+                            <div class="d-flex w-100 justify-content-between">
+                                <small class="mb-1">{{ incident.title }}</small>
+                            </div>
+                            <small class="text-muted">
+                                <i class="fas fa-newspaper me-1"></i>{{ incident.source }} |
+                                <i class="fas fa-clock me-1"></i>{{ incident.published_at|date:"d M Y" }}
+                            </small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% else %}
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Tidak ada insiden dilaporkan
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center text-muted py-5">
+                <i class="fas fa-info-circle fa-3x mb-3"></i>
+                <p>Tidak ada data regional tersedia</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Legend -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Keterangan Status Keamanan:</h6>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-success me-2" style="width: 80px;">Normal</span>
+                            <small class="text-muted">< 5 ancaman</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-info me-2" style="width: 80px;">Waspada</span>
+                            <small class="text-muted">5-9 ancaman</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-warning me-2" style="width: 80px;">Siaga</span>
+                            <small class="text-muted">10-14 ancaman</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-danger me-2" style="width: 80px;">Kritis</span>
+                            <small class="text-muted">≥ 15 ancaman</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

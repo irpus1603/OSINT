@@ -1,0 +1,541 @@
+{% extends 'base.html' %}
+
+{% block title %}Top Keywords{% endblock %}
+
+{% block content %}
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Active Keywords</h5>
+                <p class="card-text display-4">{{ total_keywords_active }}</p>
+                <small class="text-muted">with mentions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Total Mentions</h5>
+                <p class="card-text display-4">{{ total_mentions_all }}</p>
+                <small class="text-muted">across all sources</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Avg per Keyword</h5>
+                <p class="card-text display-4">{{ avg_mentions_per_keyword }}</p>
+                <small class="text-muted">mentions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Date Range</h5>
+                <p class="card-text display-4">{{ date_range|upper }}</p>
+                <small class="text-muted">filter period</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Filter by Date Range</h5>
+                <div class="btn-group" role="group" aria-label="Date range filter">
+                    <a href="?date_range=1d" class="btn {% if date_range == '1d' %}btn-primary{% else %}btn-outline-primary{% endif %}">1 Day</a>
+                    <a href="?date_range=7d" class="btn {% if date_range == '7d' %}btn-primary{% else %}btn-outline-primary{% endif %}">7 Days</a>
+                    <a href="?date_range=30d" class="btn {% if date_range == '30d' %}btn-primary{% else %}btn-outline-primary{% endif %}">30 Days</a>
+                    <a href="?date_range=90d" class="btn {% if date_range == '90d' %}btn-primary{% else %}btn-outline-primary{% endif %}">90 Days</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Top 10 Keywords by Mentions</h5>
+                <div class="chart-container" style="position: relative; height:300px; width:100%">
+                    <canvas id="keywordsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Overall Sentiment Distribution</h5>
+                <div class="chart-container" style="position: relative; height:300px; width:100%">
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trending Keywords -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">📈 Trending Up</h5>
+            </div>
+            <div class="card-body">
+                {% if trending_up %}
+                    {% for keyword in trending_up %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">{{ keyword.keyword.term }}</span>
+                            <div>
+                                <span class="badge bg-success">+{{ keyword.trend_percentage }}%</span>
+                                <small class="text-muted">{{ keyword.total_mentions }} mentions</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No trending up keywords in this period</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">📉 Trending Down</h5>
+            </div>
+            <div class="card-body">
+                {% if trending_down %}
+                    {% for keyword in trending_down %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">{{ keyword.keyword.term }}</span>
+                            <div>
+                                <span class="badge bg-danger">{{ keyword.trend_percentage }}%</span>
+                                <small class="text-muted">{{ keyword.total_mentions }} mentions</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No trending down keywords in this period</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Sources -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">🏆 Most Active Sources</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for source, count in top_sources %}
+                        <div class="col-md-2 text-center mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <div class="h4 mb-1">{{ count }}</div>
+                                <small class="text-muted">{{ source }}</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Latest News for Trending Keywords -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">📰 Latest News from Trending Keywords</h5>
+                <small class="text-light">Click article titles to open original sources (links open in new tabs)</small>
+            </div>
+            <div class="card-body">
+                {% if trending_keywords_news %}
+                    {% for kw_news in trending_keywords_news %}
+                        <div class="mb-4 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <span class="badge bg-primary me-2">{{ kw_news.keyword.term }}</span>
+                                        <span class="me-2">{{ kw_news.trend_icon }}</span>
+                                        <small class="text-success fw-bold">+{{ kw_news.trend_percentage }}%</small>
+                                    </h6>
+                                    <small class="text-muted">{{ kw_news.total_mentions }} total mentions</small>
+                                </div>
+                                <div>
+                                    {% if kw_news.dominant_sentiment == 'positive' %}
+                                        <span class="badge bg-success">Positive Trend</span>
+                                    {% elif kw_news.dominant_sentiment == 'negative' %}
+                                        <span class="badge bg-danger">Negative Trend</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Neutral Trend</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <!-- Recent Articles -->
+                                <div class="col-md-8">
+                                    <h6 class="text-primary mb-2">📄 Recent Articles</h6>
+                                    {% if kw_news.recent_articles %}
+                                        {% for article in kw_news.recent_articles %}
+                                            <div class="mb-2 p-2 bg-light rounded">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">
+                                                            {% if article.url %}
+                                                                <a href="{{ article.url }}" target="_blank" class="text-decoration-none text-primary fw-bold" rel="noopener noreferrer"
+                                                                   onclick="console.log('Clicking trending URL:', '{{ article.url }}'); window.open('{{ article.url }}', '_blank'); return false;"
+                                                                   style="cursor: pointer; text-decoration: underline !important;" 
+                                                                   title="Click to open: {{ article.url }}">
+                                                                    {{ article.title|truncatechars:80 }}
+                                                                </a>
+                                                                <small class="text-success ms-2" title="External link">🔗</small>
+                                                            {% else %}
+                                                                <span class="text-muted">{{ article.title|truncatechars:80 }} (No URL)</span>
+                                                            {% endif %}
+                                                        </h6>
+                                                        <small class="text-muted">
+                                                            {{ article.source.name }} • {{ article.scraped_at|timesince }} ago
+                                                        </small>
+                                                        {% if article.excerpt %}
+                                                            <p class="mb-0 mt-1 small">{{ article.excerpt|truncatechars:120 }}</p>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <p class="text-muted small">No recent articles found</p>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Recent Posts -->
+                                <div class="col-md-4">
+                                    <h6 class="text-info mb-2">💬 Recent Posts</h6>
+                                    {% if kw_news.recent_posts %}
+                                        {% for post in kw_news.recent_posts %}
+                                            <div class="mb-2 p-2 bg-light rounded">
+                                                <div class="small">
+                                                    <strong>{{ post.author|default:"Unknown" }}</strong>
+                                                    <small class="text-muted">• {{ post.scraped_at|timesince }} ago</small>
+                                                </div>
+                                                <p class="mb-1 small">{{ post.content|truncatechars:100 }}</p>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">{{ post.source.name }}</small>
+                                                    <div>
+                                                        <small class="text-muted">
+                                                            ❤️ {{ post.likes_count|default:0 }} 
+                                                            🔄 {{ post.retweets_count|default:0 }}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <p class="text-muted small">No recent posts found</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">No trending keywords with recent news in the selected period</p>
+                    </div>
+                {% endif %}
+                <div class="alert alert-info mt-3" role="alert">
+                    <small>
+                        <strong>Note:</strong> Some news links may not work due to:
+                        • Website access restrictions or paywalls
+                        • Geographic content blocking  
+                        • Source website changes or content removal
+                        <br>If a link doesn't work, try copying the title and searching for it on the source website directly.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overall Latest News -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">🕐 Latest News Overall (All Keywords)</h5>
+            </div>
+            <div class="card-body">
+                {% if latest_news_overall %}
+                    <div class="row">
+                        {% for article in latest_news_overall %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 border-start border-primary border-4">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            {% if article.url %}
+                                                <a href="{{ article.url }}" target="_blank" class="text-decoration-none text-primary fw-bold" rel="noopener noreferrer" 
+                                                   onclick="console.log('Clicking URL:', '{{ article.url }}'); window.open('{{ article.url }}', '_blank'); return false;"
+                                                   style="cursor: pointer; text-decoration: underline !important;" 
+                                                   title="Click to open: {{ article.url }}">
+                                                    {{ article.title|truncatechars:70 }}
+                                                </a>
+                                                <small class="text-success ms-2" title="External link">🔗</small>
+                                            {% else %}
+                                                <span class="text-muted">{{ article.title|truncatechars:70 }} (No URL)</span>
+                                            {% endif %}
+                                        </h6>
+                                        <div class="mb-2">
+                                            {% for keyword in article.keywords.all %}
+                                                <span class="badge bg-primary me-1" style="font-size: 0.7em;">{{ keyword.term }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        <p class="card-text small text-muted">{{ article.excerpt|truncatechars:100 }}</p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <strong>{{ article.source.name }}</strong>
+                                            </small>
+                                            <small class="text-muted">
+                                                {{ article.scraped_at|timesince }} ago
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">No recent news found in the selected period</p>
+                    </div>
+                {% endif %}
+                <div class="alert alert-warning mt-3" role="alert">
+                    <small>
+                        <strong>🔗 URL Troubleshooting Tips:</strong><br>
+                        • Links should be <span class="text-primary">blue/colored</span> and show a 🔗 icon
+                        • Right-click → "Open link in new tab" if normal click doesn't work
+                        • Check browser console (F12) for any error messages
+                        • Some sites may block direct access - try searching the title instead
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Keywords Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">🔍 Detailed Keywords Analytics</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Keyword</th>
+                                <th>Total Mentions</th>
+                                <th>Articles</th>
+                                <th>Posts</th>
+                                <th>Dominant Sentiment</th>
+                                <th>Positive %</th>
+                                <th>Negative %</th>
+                                <th>Neutral %</th>
+                                <th>Trend</th>
+                                <th>Top Sources</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for keyword in top_keywords %}
+                                <tr>
+                                    <td class="fw-bold">#{{ forloop.counter }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ keyword.keyword.term }}</span>
+                                    </td>
+                                    <td class="fw-bold">{{ keyword.total_mentions }}</td>
+                                    <td>{{ keyword.articles_count }}</td>
+                                    <td>{{ keyword.posts_count }}</td>
+                                    <td>
+                                        {% if keyword.dominant_sentiment == 'positive' %}
+                                            <span class="badge bg-success">Positive</span>
+                                        {% elif keyword.dominant_sentiment == 'negative' %}
+                                            <span class="badge bg-danger">Negative</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Neutral</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="text-success fw-bold">{{ keyword.positive_pct }}%</span>
+                                            <div class="progress ms-2 flex-grow-1" style="height: 4px;">
+                                                <div class="progress-bar bg-success" style="width: {{ keyword.positive_pct }}%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="text-danger fw-bold">{{ keyword.negative_pct }}%</span>
+                                            <div class="progress ms-2 flex-grow-1" style="height: 4px;">
+                                                <div class="progress-bar bg-danger" style="width: {{ keyword.negative_pct }}%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="text-secondary fw-bold">{{ keyword.neutral_pct }}%</span>
+                                            <div class="progress ms-2 flex-grow-1" style="height: 4px;">
+                                                <div class="progress-bar bg-secondary" style="width: {{ keyword.neutral_pct }}%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2">{{ keyword.trend_icon }}</span>
+                                            {% if keyword.trend_direction == 'increasing' %}
+                                                <span class="badge bg-success">+{{ keyword.trend_percentage }}%</span>
+                                            {% elif keyword.trend_direction == 'decreasing' %}
+                                                <span class="badge bg-danger">{{ keyword.trend_percentage }}%</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Stable</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% for source, count in keyword.sources_distribution.items %}
+                                            {% if forloop.counter <= 3 %}
+                                                <small class="badge bg-info me-1">{{ source }}: {{ count }}</small>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if keyword.sources_distribution|length > 3 %}
+                                            <small class="text-muted">+{{ keyword.sources_distribution|length|add:'-3' }} more</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="11" class="text-center text-muted py-4">
+                                        No keyword data available for the selected date range
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Keywords Bar Chart
+    const keywordsCtx = document.getElementById('keywordsChart').getContext('2d');
+    new Chart(keywordsCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ keyword_names|safe }},
+            datasets: [{
+                label: 'Mentions',
+                data: {{ keyword_counts|safe }},
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(255, 205, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)',
+                    'rgba(255, 159, 64, 0.8)',
+                    'rgba(199, 199, 199, 0.8)',
+                    'rgba(83, 102, 255, 0.8)',
+                    'rgba(255, 99, 255, 0.8)',
+                    'rgba(99, 255, 132, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(255, 205, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)',
+                    'rgba(199, 199, 199, 1)',
+                    'rgba(83, 102, 255, 1)',
+                    'rgba(255, 99, 255, 1)',
+                    'rgba(99, 255, 132, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45
+                    }
+                }
+            }
+        }
+    });
+
+    // Sentiment Pie Chart
+    const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+    new Chart(sentimentCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Positive', 'Negative', 'Neutral'],
+            datasets: [{
+                data: [{{ total_positive }}, {{ total_negative }}, {{ total_neutral }}],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(220, 53, 69, 0.8)',
+                    'rgba(108, 117, 125, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(40, 167, 69, 1)',
+                    'rgba(220, 53, 69, 1)',
+                    'rgba(108, 117, 125, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

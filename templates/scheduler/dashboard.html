@@ -1,0 +1,404 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Scheduler Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Scheduler Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-outline-primary me-2" id="runAllTasks" data-bs-toggle="tooltip" data-bs-placement="top" title="Run all active tasks immediately">
+            <span data-feather="play"></span>
+            Run All Tasks
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger me-2" id="stopAllTasks" data-bs-toggle="tooltip" data-bs-placement="top" title="Disable all tasks to prevent automatic execution">
+            <span data-feather="stop-circle"></span>
+            Stop All Tasks
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-success me-2" id="startAllTasks" data-bs-toggle="tooltip" data-bs-placement="top" title="Enable all tasks to allow automatic execution">
+            <span data-feather="play-circle"></span>
+            Start All Tasks
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-warning me-2" id="stopCelery" data-bs-toggle="tooltip" data-bs-placement="top" title="Stop all Celery processes (worker and scheduler)">
+            <span data-feather="power"></span>
+            Stop Celery
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-info" id="startCelery" data-bs-toggle="tooltip" data-bs-placement="top" title="Start Celery processes (worker and scheduler)">
+            <span data-feather="refresh-cw"></span>
+            Start Celery
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <h5>Crawl Tasks</h5>
+        <div class="table-responsive">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Source</th>
+                        <th>Frequency</th>
+                        <th>Status</th>
+                        <th>Last Run</th>
+                        <th>Next Run</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr id="task-row-{{ task.id }}" data-task-id="{{ task.id }}">
+                        <td>{{ task.name }}</td>
+                        <td>
+                            {% if 'Batch Crawl' in task.name or 'All News Sources' in task.name %}
+                                <span class="badge bg-primary">ALL SOURCES ({{ task.source.source_type }})</span>
+                            {% else %}
+                                {{ task.source.name }}
+                            {% endif %}
+                        </td>
+                        <td>{{ task.get_frequency_display }}</td>
+                        <td>
+                            <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'failed' %}danger{% elif task.status == 'running' %}warning{% else %}secondary{% endif %}">
+                                {{ task.get_status_display }}
+                            </span>
+                            {% if task.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.last_run|date:"Y-m-d H:i" }}</td>
+                        <td>{{ task.next_run|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-primary run-task" data-bs-toggle="tooltip" data-bs-placement="top" title="Run this task immediately" data-task-id="{{ task.id }}">
+                                    <span data-feather="play"></span>
+                                </button>
+                                {% if task.is_active %}
+                                    <button class="btn btn-warning toggle-task" data-bs-toggle="tooltip" data-bs-placement="top" title="Disable this task" data-task-id="{{ task.id }}">
+                                        <span data-feather="pause"></span>
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-success toggle-task" data-bs-toggle="tooltip" data-bs-placement="top" title="Enable this task" data-task-id="{{ task.id }}">
+                                        <span data-feather="play"></span>
+                                    </button>
+                                {% endif %}
+                                <button class="btn btn-info reset-task" data-bs-toggle="tooltip" data-bs-placement="top" title="Reset task schedule" data-task-id="{{ task.id }}">
+                                    <span data-feather="refresh-ccw"></span>
+                                </button>
+                                {% if task.status == 'running' %}
+                                    <button class="btn btn-danger cancel-task" data-bs-toggle="tooltip" data-bs-placement="top" title="Cancel this running task" data-task-id="{{ task.id }}">
+                                        <span data-feather="x"></span>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <h5>Recent Logs</h5>
+        <div class="table-responsive">
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Status</th>
+                        <th>Started</th>
+                        <th>Items</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.task.name }}</td>
+                        <td>
+                            <span class="badge bg-{% if log.status == 'success' %}success{% elif log.status == 'failed' %}danger{% else %}warning{% endif %}">
+                                {{ log.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ log.started_at|date:"m-d H:i" }}</td>
+                        <td>{{ log.items_scraped }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Scheduler Controls</h6>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    <strong>Active Tasks:</strong> {{ tasks|length }}<br>
+                    <strong>Enabled Tasks:</strong> {{ tasks|dictsortreversed:"is_active"|first }}<br>
+                    <strong>Last Execution:</strong> {{ logs.first.started_at|date:"Y-m-d H:i" }}<br>
+                    <strong>Celery Status:</strong> 
+                    <span class="badge bg-{% if celery_status.celery_running %}success{% else %}danger{% endif %}">
+                        {% if celery_status.celery_running %}Running{% else %}Stopped{% endif %}
+                    </span>
+                    (Worker: 
+                    <span class="badge bg-{% if celery_status.worker_running %}success{% else %}secondary{% endif %}">
+                        {% if celery_status.worker_running %}Active{% else %}Inactive{% endif %}
+                    </span>, 
+                    Beat: 
+                    <span class="badge bg-{% if celery_status.beat_running %}success{% else %}secondary{% endif %}">
+                        {% if celery_status.beat_running %}Active{% else %}Inactive{% endif %}
+                    </span>)
+                </p>
+                <button class="btn btn-sm btn-outline-primary" id="refreshDashboard">
+                    <span data-feather="refresh-cw"></span> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+    
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const csrftoken = getCookie('csrftoken');
+
+    // Run individual task
+    document.querySelectorAll('.run-task').forEach(button => {
+        button.addEventListener('click', function() {
+            const taskId = this.getAttribute('data-task-id');
+            fetch(`/scheduler/run-task/${taskId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Task started successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error starting task: ' + error);
+            });
+        });
+    });
+    
+    // Toggle task status (enable/disable)
+    document.querySelectorAll('.toggle-task').forEach(button => {
+        button.addEventListener('click', function() {
+            const taskId = this.getAttribute('data-task-id');
+            fetch(`/scheduler/toggle-status/${taskId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error toggling task: ' + error);
+            });
+        });
+    });
+    
+    // Reset task schedule
+    document.querySelectorAll('.reset-task').forEach(button => {
+        button.addEventListener('click', function() {
+            const taskId = this.getAttribute('data-task-id');
+            if (confirm('Are you sure you want to reset this task schedule?')) {
+                fetch(`/scheduler/reset-schedule/${taskId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Error resetting task: ' + error);
+                });
+            }
+        });
+    });
+    
+    // Stop all tasks (disable all)
+    document.getElementById('stopAllTasks').addEventListener('click', function() {
+        if (confirm('Are you sure you want to disable all tasks?')) {
+            fetch('/scheduler/stop-all/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error stopping tasks: ' + error);
+            });
+        }
+    });
+    
+    // Start all tasks (enable all)
+    document.getElementById('startAllTasks').addEventListener('click', function() {
+        if (confirm('Are you sure you want to enable all tasks?')) {
+            fetch('/scheduler/start-all/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error starting tasks: ' + error);
+            });
+        }
+    });
+    
+    // Stop Celery processes
+    document.getElementById('stopCelery').addEventListener('click', function() {
+        if (confirm('Are you sure you want to stop all Celery processes? This will stop task execution.')) {
+            fetch('/scheduler/stop-celery/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error stopping Celery: ' + error);
+            });
+        }
+    });
+    
+    // Start Celery processes
+    document.getElementById('startCelery').addEventListener('click', function() {
+        if (confirm('Are you sure you want to start Celery processes?')) {
+            fetch('/scheduler/start-celery/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error starting Celery: ' + error);
+            });
+        }
+    });
+    
+    // Cancel individual running task
+    document.querySelectorAll('.cancel-task').forEach(button => {
+        button.addEventListener('click', function() {
+            const taskId = this.getAttribute('data-task-id');
+            if (confirm('Are you sure you want to cancel this running task?')) {
+                fetch(`/scheduler/cancel-task/${taskId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Error cancelling task: ' + error);
+                });
+            }
+        });
+    });
+    
+    // Refresh dashboard
+    document.getElementById('refreshDashboard').addEventListener('click', function() {
+        location.reload();
+    });
+});
+</script>
+{% endblock %}

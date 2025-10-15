@@ -1,0 +1,520 @@
+{% extends 'base.html' %}
+{% load security_filters %}
+
+{% block title %}Security Summary{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>🔒 Security Intelligence Summary</h2>
+                <p class="text-muted">AI-powered analysis of security threats and trends - {{ range_label }}</p>
+            </div>
+            <div>
+                {% if threat_level == 'High' %}
+                    <span class="badge bg-danger fs-6 p-2">🚨 Threat Level: HIGH</span>
+                {% elif threat_level == 'Medium' %}
+                    <span class="badge bg-warning fs-6 p-2">⚠️ Threat Level: MEDIUM</span>
+                {% else %}
+                    <span class="badge bg-success fs-6 p-2">✅ Threat Level: LOW</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Analysis Period</h5>
+                <div class="btn-group" role="group">
+                    <a href="?date_range=1d" class="btn {% if date_range == '1d' %}btn-primary{% else %}btn-outline-primary{% endif %}">24 Hours</a>
+                    <a href="?date_range=7d" class="btn {% if date_range == '7d' %}btn-primary{% else %}btn-outline-primary{% endif %}">7 Days</a>
+                    <a href="?date_range=30d" class="btn {% if date_range == '30d' %}btn-primary{% else %}btn-outline-primary{% endif %}">30 Days</a>
+                    <a href="?date_range=90d" class="btn {% if date_range == '90d' %}btn-primary{% else %}btn-outline-primary{% endif %}">90 Days</a>
+                </div>
+                <small class="text-muted ms-3">
+                    Analysis completed in {{ analysis_duration }} seconds using AI-powered intelligence
+                </small>
+                <a href="{% url 'dashboard:security_summary_pdf' %}?date_range={{ date_range }}" 
+                   class="btn btn-outline-danger btn-sm ms-3" 
+                   target="_blank">
+                    <i class="fas fa-file-pdf"></i> Download PDF Report
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Security Articles</h5>
+                <p class="card-text display-4">{{ total_articles }}</p>
+                <small class="text-muted">tracked sources</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Social Intel</h5>
+                <p class="card-text display-4">{{ total_posts }}</p>
+                <small class="text-muted">social media posts</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center border-danger">
+            <div class="card-body">
+                <h5 class="card-title text-danger">Negative</h5>
+                <p class="card-text display-4 text-danger">{{ total_negative }}</p>
+                <small class="text-muted">concerning reports</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center border-warning">
+            <div class="card-body">
+                <h5 class="card-title text-warning">Neutral</h5>
+                <p class="card-text display-4 text-warning">{{ total_neutral }}</p>
+                <small class="text-muted">neutral reports</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <h5 class="card-title text-success">Positive</h5>
+                <p class="card-text display-4 text-success">{{ total_positive }}</p>
+                <small class="text-muted">positive reports</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Keywords</h5>
+                <p class="card-text display-4">{{ trending_keywords|length }}</p>
+                <small class="text-muted">security topics</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Security Analysis -->
+{% if security_summary %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">🤖 Analisis Keamanan AI</h5>
+                <small>Penilaian ancaman komprehensif menggunakan model bahasa canggih</small>
+            </div>
+            <div class="card-body">
+                <div class="security-analysis rich-format">
+                    {{ security_summary|clean_llm_html }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Trend Analysis -->
+{% if trend_analysis %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">📈 Analisis Tren Keamanan</h5>
+            </div>
+            <div class="card-body">
+                <div class="trend-analysis rich-format">
+                    {{ trend_analysis|clean_llm_html }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Incident Analysis -->
+{% if incident_analysis %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0">🚨 Analisis Insiden Keamanan</h5>
+            </div>
+            <div class="card-body">
+                <div class="incident-analysis rich-format">
+                    {{ incident_analysis|clean_llm_html }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Security Keywords Trends -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">🔍 Security Keywords Trends</h5>
+            </div>
+            <div class="card-body">
+                {% if trending_keywords %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Keyword</th>
+                                    <th>Mentions</th>
+                                    <th>Trend</th>
+                                    <th>Sentiment</th>
+                                    <th>Positive</th>
+                                    <th>Negative</th>
+                                    <th>Neutral</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for keyword in trending_keywords %}
+                                <tr>
+                                    <td><span class="badge bg-dark">{{ keyword.keyword }}</span></td>
+                                    <td class="fw-bold">{{ keyword.total_mentions }}</td>
+                                    <td>
+                                        {% if keyword.trend_direction == 'increasing' %}
+                                            <span class="text-danger">📈 +{{ keyword.trend_percentage }}%</span>
+                                        {% elif keyword.trend_direction == 'decreasing' %}
+                                            <span class="text-success">📉 {{ keyword.trend_percentage }}%</span>
+                                        {% else %}
+                                            <span class="text-secondary">📊 Stable</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if keyword.dominant_sentiment == 'positive' %}
+                                            <span class="badge bg-success">Positive</span>
+                                        {% elif keyword.dominant_sentiment == 'negative' %}
+                                            <span class="badge bg-danger">Negative</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Neutral</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="text-success">{{ keyword.positive_count }}</span></td>
+                                    <td><span class="text-danger">{{ keyword.negative_count }}</span></td>
+                                    <td><span class="text-secondary">{{ keyword.neutral_count }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No security keywords trending in the selected period</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Source Intelligence & Recent Reports -->
+<div class="row mb-4">
+    <!-- Top Sources -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">📰 Top Sources</h5>
+            </div>
+            <div class="card-body">
+                {% if top_sources %}
+                    {% for source, count in top_sources %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">{{ source }}</span>
+                            <span class="badge bg-secondary">{{ count }}</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No source data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Security Articles -->
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">📄 Recent Security Reports</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_articles %}
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        {% for article in recent_articles %}
+                            <div class="mb-3 p-2 border-start border-primary border-3">
+                                <h6 class="mb-1">
+                                    {% if article.url %}
+                                        <a href="{{ article.url }}" target="_blank" class="text-decoration-none text-primary fw-bold">
+                                            {{ article.title|truncatechars:80 }}
+                                        </a>
+                                    {% else %}
+                                        {{ article.title|truncatechars:80 }}
+                                    {% endif %}
+                                </h6>
+                                <small class="text-muted">
+                                    {{ article.source.name }} • {{ article.scraped_at|timesince }} ago
+                                </small>
+                                <div class="mt-1">
+                                    {% for keyword in article.keywords.all %}
+                                        {% if keyword.term in 'terrorism,attack,bomb,threat,violence,security,militant,extremist,protest,riot,demonstration' %}
+                                            <span class="badge bg-danger me-1" style="font-size: 0.7em;">{{ keyword.term }}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% if article.excerpt %}
+                                    <p class="small text-muted mt-2">{{ article.excerpt|truncatechars:100 }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No recent security articles found</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Display -->
+{% if analysis_error %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-danger" role="alert">
+            <h5 class="alert-heading">⚠️ Analysis Error</h5>
+            <p>There was an error generating the AI analysis:</p>
+            <hr>
+            <p class="mb-0"><strong>Error:</strong> {{ analysis_error }}</p>
+            <small class="text-muted">Please check the LLM API connection and try again.</small>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- API Information -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-info" role="alert">
+            <small>
+                <strong>🤖 AI Analysis Information:</strong><br>
+                • Powered by Sahabat-AI/gemma2-9b-cpt-sahabatai-v1-instruct model<br>
+                • Analysis focuses on Indonesian and Southeast Asian security developments<br>
+                • Data is analyzed in real-time from {{ total_articles }} articles and {{ total_posts }} social media posts<br>
+                • Threat assessment is automatically calculated based on sentiment analysis and keyword frequency<br>
+                • Analysis completed in {{ analysis_duration }} seconds
+            </small>
+        </div>
+    </div>
+</div>
+
+<style>
+.rich-format {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.7;
+    font-size: 14px;
+}
+
+/* Rich text formatting for LLM content */
+.rich-format p {
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.rich-format h1, .rich-format h2, .rich-format h3, .rich-format h4 {
+    color: #1a365d;
+    font-weight: 700;
+    margin-top: 1.8rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 0.5rem;
+}
+
+.rich-format h1 {
+    font-size: 1.4rem;
+    color: #2d3748;
+}
+
+.rich-format h2 {
+    font-size: 1.2rem;
+    color: #2d3748;
+}
+
+.rich-format h3 {
+    font-size: 1.1rem;
+    color: #4a5568;
+}
+
+.rich-format strong, .rich-format b {
+    color: #e53e3e;
+    font-weight: 700;
+}
+
+.rich-format em, .rich-format i {
+    color: #3182ce;
+    font-style: italic;
+}
+
+.rich-format ul, .rich-format ol {
+    margin: 1rem 0;
+    padding-left: 2rem;
+}
+
+.rich-format li {
+    margin-bottom: 0.75rem;
+    color: #2d3748;
+    line-height: 1.6;
+}
+
+.rich-format li strong {
+    color: #c53030;
+}
+
+/* Highlight key security terms */
+.rich-format ul li:before {
+    content: "▸ ";
+    color: #3182ce;
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+.rich-format ol li {
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+}
+
+/* Code-like formatting for technical terms */
+.rich-format code {
+    background-color: #f7fafc;
+    color: #2d3748;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.9em;
+    border: 1px solid #e2e8f0;
+}
+
+/* Blockquote styling for important notices */
+.rich-format blockquote {
+    border-left: 4px solid #3182ce;
+    background-color: #f7fafc;
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0;
+    color: #2d3748;
+    font-style: italic;
+}
+
+/* Tables if present */
+.rich-format table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9em;
+}
+
+.rich-format th, .rich-format td {
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.rich-format th {
+    background-color: #f7fafc;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+/* Alert-style formatting for risk levels */
+.rich-format .risk-high {
+    background-color: #fed7d7;
+    border: 1px solid #fc8181;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    margin: 1rem 0;
+}
+
+.rich-format .risk-medium {
+    background-color: #fef5e7;
+    border: 1px solid #f6ad55;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    margin: 1rem 0;
+}
+
+.rich-format .risk-low {
+    background-color: #f0fff4;
+    border: 1px solid #68d391;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    margin: 1rem 0;
+}
+
+.card-header {
+    font-weight: 600;
+}
+
+.threat-badge {
+    font-size: 1.1em;
+    padding: 0.5rem 1rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .rich-format {
+        font-size: 13px;
+    }
+    
+    .rich-format h1 {
+        font-size: 1.2rem;
+    }
+    
+    .rich-format h2 {
+        font-size: 1.1rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh functionality (optional)
+    const refreshButton = document.createElement('button');
+    refreshButton.className = 'btn btn-outline-primary btn-sm ms-3';
+    refreshButton.innerHTML = '🔄 Refresh Analysis';
+    refreshButton.onclick = function() {
+        window.location.reload();
+    };
+    
+    const cardBody = document.querySelector('.card-body');
+    if (cardBody) {
+        cardBody.appendChild(refreshButton);
+    }
+    
+    // Highlight security keywords in analysis text
+    const analysisElements = document.querySelectorAll('.security-analysis, .trend-analysis, .incident-analysis');
+    const securityKeywords = ['terrorism', 'attack', 'bomb', 'threat', 'violence', 'security', 'militant', 'extremist', 'protest'];
+    
+    analysisElements.forEach(element => {
+        let content = element.innerHTML;
+        securityKeywords.forEach(keyword => {
+            const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+            content = content.replace(regex, `<mark class="bg-warning">${keyword}</mark>`);
+        });
+        element.innerHTML = content;
+    });
+});
+</script>
+{% endblock %}

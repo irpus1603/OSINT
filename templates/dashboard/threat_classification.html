@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Klasifikasi Ancaman - OSINT Jasa Pengamanan{% endblock %}
+{% block header_icon %}exclamation-triangle{% endblock %}
+{% block title %}Klasifikasi Ancaman Keamanan{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card danger position-relative">
+            <i class="fas fa-shield-alt stat-icon"></i>
+            <div class="stat-value" style="color: var(--danger-color);">{{ total_threats }}</div>
+            <div class="stat-label">Total Ancaman Terdeteksi</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card primary position-relative">
+            <i class="fas fa-newspaper stat-icon"></i>
+            <div class="stat-value" style="color: var(--primary-color);">{{ total_articles }}</div>
+            <div class="stat-label">Total Berita Dianalisis</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card warning position-relative">
+            <i class="fas fa-calendar-alt stat-icon"></i>
+            <div class="stat-value" style="color: var(--warning-color); font-size: 1.5rem;">{{ date_range }}</div>
+            <div class="stat-label">Periode Data</div>
+        </div>
+    </div>
+</div>
+
+<!-- Threat Categories -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-list-alt me-2"></i> Kategori Ancaman Keamanan
+            </div>
+            <div class="card-body">
+                {% for threat in threat_data %}
+                <div class="mb-4 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                            {{ threat.category }}
+                        </h5>
+                        <div>
+                            <span class="badge bg-{% if threat.severity == 'Tinggi' %}danger{% elif threat.severity == 'Sedang' %}warning{% else %}info{% endif %} me-2">
+                                {{ threat.severity }}
+                            </span>
+                            <span class="badge bg-primary">{{ threat.count }} Insiden</span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress mb-3" style="height: 30px;">
+                        <div class="progress-bar bg-{% if threat.severity == 'Tinggi' %}danger{% elif threat.severity == 'Sedang' %}warning{% else %}info{% endif %}"
+                             role="progressbar"
+                             style="width: {{ threat.percentage }}%;"
+                             aria-valuenow="{{ threat.percentage }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                            {{ threat.percentage }}% dari total ancaman
+                        </div>
+                    </div>
+
+                    <!-- Recent Incidents -->
+                    {% if threat.recent_incidents %}
+                    <div class="mt-3">
+                        <h6 class="text-muted mb-2">
+                            <i class="fas fa-history me-2"></i>Insiden Terbaru:
+                        </h6>
+                        <ul class="list-group">
+                            {% for incident in threat.recent_incidents %}
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div class="ms-2 me-auto">
+                                    <div class="fw-bold">{{ incident.title|truncatewords:15 }}</div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-newspaper me-1"></i>{{ incident.source }} |
+                                        <i class="fas fa-clock me-1"></i>{{ incident.published_at|date:"d M Y H:i" }}
+                                    </small>
+                                </div>
+                                <a href="{{ incident.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-info-circle fa-3x mb-3"></i>
+                    <p>Tidak ada ancaman terdeteksi dalam periode ini</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Regional Quick View -->
+{% if regional_threats %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-map-marker-alt me-2"></i> Status Keamanan Per Wilayah
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-map-marked-alt me-2"></i>Wilayah</th>
+                                <th class="text-center"><i class="fas fa-exclamation-triangle me-2"></i>Jumlah Ancaman</th>
+                                <th class="text-center"><i class="fas fa-shield-alt me-2"></i>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for region in regional_threats %}
+                            <tr>
+                                <td><strong>{{ region.region }}</strong></td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">{{ region.count }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-{% if region.status == 'Siaga' %}danger{% elif region.status == 'Waspada' %}warning{% else %}success{% endif %}">
+                                        {{ region.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 text-end">
+                    <a href="{% url 'dashboard:regional_security' %}" class="btn btn-primary">
+                        <i class="fas fa-map me-2"></i>Lihat Detail Regional
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
