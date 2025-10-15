@@ -46,4 +46,4 @@ echo "To stop all services, run: ./stop_server.sh"
 echo "========================================="
 
 # Start Django server (this runs in foreground)
-python manage.py runserver
+python manage.py runserver 0.0.0.0:8000
